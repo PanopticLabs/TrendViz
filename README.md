@@ -28,4 +28,4 @@ pip install plotly
 
 # Troubleshooting
 
-I only tested this on a Linux machine, so there may be unforseen issues on other devices. You may have to change the filepaths to work for your system, e.g. change '/' to '\'
+I only tested this on a Linux machine, so there may be unforseen issues on other devices. You may have to change the filepaths to work for your system, e.g. change '/' to '\\'
