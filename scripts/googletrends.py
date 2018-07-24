@@ -1,13 +1,20 @@
 import urllib2
+import requests
 import json
 import csv
+import io
+hdr = {
+        'Host': 'trends.google.com',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.7 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-GB,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'}
 
-hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-       'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-       'Accept-Encoding': 'none',
-       'Accept-Language': 'en-US,en;q=0.8',
-       'Connection': 'keep-alive'}
+session = requests.Session()
+response = session.get('https://trends.google.com', headers=hdr)
 
 def get_data(searchterms, timescale):
     if timescale == 'day':
@@ -33,19 +40,8 @@ def get_data(searchterms, timescale):
 
 
     url = 'https://trends.google.com/trends/api/explore?hl=en-US&tz=0&req=' + query + '&tz=0'
-
-    #urlterm = urllib2.quote(searchterm)
-    #url = 'https://trends.google.com/trends/api/explore?hl=en-US&tz=0&req=%7B%22comparisonItem%22:%5B%7B%22keyword%22:%22' + urlterm + '%22,%22geo%22:%22%22,%22time%22:%22' + scale + '%22%7D%5D,%22category%22:0,%22property%22:%22%22%7D&tz=0'
-    req = urllib2.Request(url, headers=hdr)
-    response = urllib2.urlopen(req)
-
-    first = True
-    for line in response:
-        if first:
-            first = False
-        else:
-            j = json.loads(line)
-
+    response = session.get(url, headers=hdr)
+    j = json.loads(response.text[4:])
     response.close()
 
     request = json.dumps(j['widgets'][0]['request'])
@@ -67,16 +63,13 @@ def get_csv(searchterms, timescale, req, token):
     tz = "0"
 
     url = 'https://trends.google.com/trends/api/widgetdata/multiline/csv?req={0}&token={1}&tz={2}'.format(req, token, tz)
-
-    request = urllib2.Request(url, headers=hdr)
-    request.add_header('Referer', 'https://trends.google.com/trends/explore?date=now%201-d&q=' + urlterm)
-    response = urllib2.urlopen(request)
-
-    trend_csv = csv.reader(response)
+    newhdr = dict(hdr)
+    newhdr['Referer'] = 'https://trends.google.com/trends/explore?date=now%201-d&q=' + urlterm
+    response = session.get(url, headers=newhdr)
+    trend_csv = csv.reader(io.StringIO(response.text))
     csvfile = 'csv/' + searchterm + '.csv'
     with open(csvfile, 'w') as fp:
         writer = csv.writer(fp, delimiter=',')
-
         count = 0
         for row in trend_csv:
             count += 1
